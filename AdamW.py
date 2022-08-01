@@ -16,8 +16,7 @@ from keras.legacy import interfaces
 from keras.optimizers import Optimizer
 
 class AdamW(Optimizer):
-    """AdamW optimizer.
-    Default parameters follow those provided in the original paper.
+    """AdamW optimizer. Default parameters follow those provided in the original paper.
     # Arguments
         lr: float >= 0. Learning rate.
         beta_1: float, 0 < beta < 1. Generally close to 1.
@@ -33,10 +32,8 @@ class AdamW(Optimizer):
         - [Fixing Weight Decay Regularization in Adam](https://arxiv.org/abs/1711.05101)
     """
 
-    def __init__(self, lr=0.001, beta_1=0.9, beta_2=0.999,
-                 epsilon=None, decay=0., weight_decay=0.025, 
-                 batch_size=1, samples_per_epoch=1, 
-                 epochs=1, **kwargs):
+    def __init__(self, lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0., weight_decay=0.025, 
+                 batch_size=1, samples_per_epoch=1, epochs=1, **kwargs):
         super(AdamW, self).__init__(**kwargs)
         with K.name_scope(self.__class__.__name__):
             self.iterations = K.variable(0, dtype='int64', name='iterations')
@@ -60,14 +57,12 @@ class AdamW(Optimizer):
 
         lr = self.lr
         if self.initial_decay > 0:
-            lr = lr * (1. / (1. + self.decay * K.cast(self.iterations,
-                                                      K.dtype(self.decay))))
+            lr = lr * (1. / (1. + self.decay * K.cast(self.iterations, K.dtype(self.decay))))
 
         t = K.cast(self.iterations, K.floatx()) + 1
         '''Bias corrections according to the Adam paper
         '''
-        lr_t = lr * (K.sqrt(1. - K.pow(self.beta_2, t)) /
-                     (1. - K.pow(self.beta_1, t)))
+        lr_t = lr * (K.sqrt(1. - K.pow(self.beta_2, t)) /  (1. - K.pow(self.beta_1, t)))
 
         ms = [K.zeros(K.int_shape(p), dtype=K.dtype(p)) for p in params]
         vs = [K.zeros(K.int_shape(p), dtype=K.dtype(p)) for p in params]
@@ -77,25 +72,24 @@ class AdamW(Optimizer):
             m_t = (self.beta_1 * m) + (1. - self.beta_1) * g
             v_t = (self.beta_2 * v) + (1. - self.beta_2) * K.square(g)
             
-            '''Schedule multiplier eta_t = 1 for simple AdamW
-            According to the AdamW paper, eta_t can be fixed, decay, or 
-            also be used for warm restarts (AdamWR to come). 
-            '''
-            eta_t = 1.
-            p_t = p - eta_t*(lr_t * m_t / (K.sqrt(v_t) + self.epsilon))
-            if self.weight_decay != 0:
-                '''Normalized weight decay according to the AdamW paper
-                '''
-                w_d = self.weight_decay*K.sqrt(self.batch_size/(self.samples_per_epoch*self.epochs))
-                p_t = p_t - eta_t*(w_d*p) 
+            '''Schedule multiplier eta_t = 1 for simple AdamW. According to the AdamW paper, eta_t can be fixed, decay, or 
+            also be used for warm restarts (AdamWR to come). '''
+           
+        eta_t = 1.
+        p_t = p - eta_t*(lr_t * m_t / (K.sqrt(v_t) + self.epsilon))
+        if self.weight_decay != 0:
+                '''Normalized weight decay according to the AdamW paper  '''
+             
+        w_d = self.weight_decay*K.sqrt(self.batch_size/(self.samples_per_epoch*self.epochs))
+        p_t = p_t - eta_t*(w_d*p) 
 
-            self.updates.append(K.update(m, m_t))
-            self.updates.append(K.update(v, v_t))
-            new_p = p_t
+        self.updates.append(K.update(m, m_t))
+        self.updates.append(K.update(v, v_t))
+        new_p = p_t
 
             # Apply constraints.
-            if getattr(p, 'constraint', None) is not None:
-                new_p = p.constraint(new_p)
+        if getattr(p, 'constraint', None) is not None:
+            new_p = p.constraint(new_p)
 
             self.updates.append(K.update(p, new_p))
         return self.updates
